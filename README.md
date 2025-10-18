@@ -58,32 +58,59 @@ AI-powered conversational Punjabi practice tool using OpenAI's GPT, Whisper, and
 
 ## Installation
 
-### 1. Clone the Repository
+### Quick Install (Recommended) 🚀
+
+Use the automated installation scripts that create a `.venv` virtual environment and set everything up:
+
+#### Windows
+```bash
+install.bat
+```
+
+#### Linux/macOS
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+The install scripts will:
+1. ✅ Check Python installation
+2. ✅ Create `.venv` virtual environment
+3. ✅ Install all dependencies
+4. ✅ Create `.env` file from template
+
+---
+
+### Manual Installation
+
+If you prefer to install manually:
+
+#### 1. Clone the Repository
 
 ```bash
 git clone <repository-url>
 cd PunjabiLangTool
 ```
 
-### 2. Create Virtual Environment
+#### 2. Create Virtual Environment
 
 ```bash
 # Windows
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv
+.venv\Scripts\activate
 
 # macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-### 3. Install Dependencies
+#### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Set Up Environment Variables
+#### 4. Set Up Environment Variables
 
 Create a `.env` file in the project root (copy from `env.example`):
 
@@ -124,6 +151,20 @@ For more details on voice selection, see [`TTS_VOICE_GUIDE.md`](TTS_VOICE_GUIDE.
 - **alloy** - Neutral, balanced
 
 ## Running the Application
+
+### Activate Virtual Environment (If Not Already Active)
+
+Before running the application, make sure your virtual environment is activated:
+
+```bash
+# Windows
+.venv\Scripts\activate
+
+# macOS/Linux
+source .venv/bin/activate
+```
+
+You'll know it's activated when you see `(.venv)` at the start of your command prompt.
 
 ### Start the Backend Server
 
