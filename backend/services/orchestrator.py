@@ -13,6 +13,7 @@ from backend.services.tts_service import get_tts_service
 from backend.services.help_service import get_help_service
 from backend.services.scenario_service import get_scenario_service
 from backend.services.session_manager import SessionManager
+from backend.services.usage_tracker import get_usage_tracker
 
 
 class ConversationOrchestrator:
@@ -26,6 +27,71 @@ class ConversationOrchestrator:
         self.tts_service = get_tts_service()
         self.help_service = get_help_service()
         self.scenario_service = get_scenario_service()
+        self.usage_tracker = get_usage_tracker()
+    
+    def _get_romanisation_from_llm(self, gurmukhi_text: str, context: str = "", session_id: str = "") -> str:
+        """
+        Use LLM to get accurate romanisation of Punjabi text.
+        This is better than character-by-character mapping.
+        
+        Args:
+            gurmukhi_text: Punjabi text in Gurmukhi script
+            context: Optional conversation context for better accuracy
+            session_id: Session ID for usage tracking
+        
+        Returns:
+            Romanised Punjabi text
+        """
+        from backend.services.openai_client import get_openai_client
+        
+        client = get_openai_client()
+        
+        system_msg = "You convert Gurmukhi to romanised Punjabi. Output ONLY the romanised text, no explanations."
+        
+        prompt = f"Gurmukhi: {gurmukhi_text}\nRomanised:"
+        
+        if context:
+            prompt = f"Context: {context}\n\n{prompt}"
+        
+        try:
+            response = client.client.chat.completions.create(
+                model="gpt-3.5-turbo",  # Faster and cheaper than gpt-4o-mini
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,
+                max_tokens=100
+            )
+            
+            # Track usage
+            if session_id and hasattr(response, 'usage'):
+                self.usage_tracker.track_gpt(
+                    session_id,
+                    response.usage.prompt_tokens,
+                    response.usage.completion_tokens
+                )
+            
+            romanised = response.choices[0].message.content.strip()
+            
+            # Clean up any extra text like "Sure!", "Here's...", etc.
+            # Just take the romanised text
+            if ':' in romanised:
+                romanised = romanised.split(':', 1)[-1].strip()
+            if romanised.startswith(('Sure', 'Here', 'The ', 'Romanised')):
+                # Try to extract just the romanised part
+                lines = romanised.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line and not any(line.startswith(x) for x in ['Sure', 'Here', 'The ', 'Romanised', 'Translation']):
+                        romanised = line
+                        break
+            
+            return romanised if romanised else gurmukhi_text
+        except Exception as e:
+            print(f"ERROR in romanisation: {str(e)}")
+            # Fallback to basic transliteration
+            return transliterate_gurmukhi_to_roman(gurmukhi_text)
     
     def process_user_audio(
         self,
@@ -58,13 +124,22 @@ class ConversationOrchestrator:
         confidence = self.asr_service.get_average_confidence(transcription)
         duration = transcription.get("duration", 0.0)
         
-        # Step 3: Transliterate to Romanised Punjabi
-        romanised_text = transliterate_gurmukhi_to_roman(gurmukhi_text)
+        # Track Whisper usage
+        if session:
+            self.usage_tracker.track_whisper(session.session_id, duration)
+        
+        # Step 3: Use LLM for better romanisation (more accurate than character mapping)
+        # This captures actual pronunciation better
+        print("DEBUG: Getting romanisation and translation from LLM...")
+        context = session.get_recent_context(num_turns=2) if session else ""
+        session_id = session.session_id if session else ""
+        romanised_text = self._get_romanisation_from_llm(gurmukhi_text, context, session_id)
         
         # Step 4: Translate to English
         english_text = self.translation_service.translate_punjabi_to_english(
             gurmukhi_text,
-            context=session.get_recent_context(num_turns=3)
+            context=session.get_recent_context(num_turns=3),
+            session_id=session_id
         )
         
         return TranscriptWithConfidence(
@@ -104,7 +179,8 @@ class ConversationOrchestrator:
         
         # Step 3: Translate to English
         ai_response_english = self.translation_service.translate_punjabi_to_english(
-            ai_response_gurmukhi
+            ai_response_gurmukhi,
+            session_id=session.session_id
         )
         
         # Step 4: Generate audio
@@ -116,6 +192,9 @@ class ConversationOrchestrator:
             text=ai_response_gurmukhi,
             output_path=audio_output_path
         )
+        
+        # Track TTS usage
+        self.usage_tracker.track_tts(session.session_id, len(ai_response_gurmukhi))
         
         ai_transcript = TriScript(
             gurmukhi=ai_response_gurmukhi,
@@ -236,7 +315,8 @@ class ConversationOrchestrator:
         # Transliterate and translate
         greeting_romanised = transliterate_gurmukhi_to_roman(greeting_gurmukhi)
         greeting_english = self.translation_service.translate_punjabi_to_english(
-            greeting_gurmukhi
+            greeting_gurmukhi,
+            session_id=session.session_id
         )
         
         # Generate audio
@@ -247,6 +327,9 @@ class ConversationOrchestrator:
             text=greeting_gurmukhi,
             output_path=audio_output_path
         )
+        
+        # Track TTS usage
+        self.usage_tracker.track_tts(session.session_id, len(greeting_gurmukhi))
         
         greeting_transcript = TriScript(
             gurmukhi=greeting_gurmukhi,

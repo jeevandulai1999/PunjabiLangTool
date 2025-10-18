@@ -13,6 +13,7 @@ from backend.models.session import HelpRequest
 from backend.services.scenario_service import get_scenario_service
 from backend.services.session_manager import create_session, get_session, end_session
 from backend.services.orchestrator import get_orchestrator
+from backend.services.usage_tracker import get_usage_tracker
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -39,6 +40,7 @@ app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 # Initialize services
 scenario_service = get_scenario_service()
 orchestrator = get_orchestrator()
+usage_tracker = get_usage_tracker()
 
 
 @app.get("/")
@@ -251,6 +253,62 @@ async def get_session_metrics(session_id: str):
         "turn_count": len(session.turns),
         "state": session.state.value
     }
+
+
+@app.get("/api/usage/{session_id}")
+async def get_session_usage(session_id: str):
+    """
+    Get API usage statistics for a specific session
+    
+    Returns:
+        Usage stats with estimated costs
+    """
+    try:
+        summary = usage_tracker.get_session_summary(session_id)
+        return {
+            "session_id": session_id,
+            "usage": summary,
+            "note": "Costs are estimates based on current OpenAI pricing"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting usage: {str(e)}")
+
+
+@app.get("/api/usage/global/summary")
+async def get_global_usage():
+    """
+    Get global API usage statistics across all sessions
+    
+    Returns:
+        Global usage stats with estimated costs
+    """
+    try:
+        summary = usage_tracker.get_global_summary()
+        return {
+            "usage": summary,
+            "note": "Costs are estimates based on current OpenAI pricing"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting global usage: {str(e)}")
+
+
+@app.get("/api/account/balance")
+async def check_account_balance():
+    """
+    Check OpenAI account balance (if available)
+    
+    Note: This may not work with all API keys.
+    For accurate balance info, visit: https://platform.openai.com/account/billing
+    """
+    try:
+        balance_info = usage_tracker.check_account_balance()
+        return balance_info
+    except Exception as e:
+        return {
+            "available": False,
+            "note": "Check balance at: https://platform.openai.com/account/billing",
+            "error": str(e)
+        }
 
 
 @app.get("/health")

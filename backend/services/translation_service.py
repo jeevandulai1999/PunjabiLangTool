@@ -6,12 +6,12 @@ from backend.services.openai_client import get_openai_client
 class TranslationService:
     """Service for translating Punjabi text to English"""
     
-    def __init__(self, model: str = "gpt-4o-mini"):
+    def __init__(self, model: str = "gpt-3.5-turbo"):
         """
         Initialize translation service.
         
         Args:
-            model: OpenAI model to use for translation (default: gpt-4o-mini for cost efficiency)
+            model: OpenAI model to use for translation (default: gpt-3.5-turbo for speed)
         """
         self.client = get_openai_client()
         self.model = model
@@ -19,7 +19,8 @@ class TranslationService:
     def translate_punjabi_to_english(
         self,
         punjabi_text: str,
-        context: Optional[str] = None
+        context: Optional[str] = None,
+        session_id: Optional[str] = None
     ) -> str:
         """
         Translate Punjabi text to English.
@@ -31,17 +32,13 @@ class TranslationService:
         Returns:
             English translation
         """
-        # Build prompt
-        system_prompt = (
-            "You are a professional Punjabi to English translator specializing in Doabi dialect. "
-            "Provide natural, conversational English translations that capture the meaning and tone. "
-            "Keep translations concise and natural."
-        )
+        # Build prompt - concise for speed
+        system_prompt = "Translate Punjabi to English. Output ONLY the English translation, nothing else."
         
-        user_prompt = f"Translate this Punjabi text to English: {punjabi_text}"
+        user_prompt = f"Punjabi: {punjabi_text}\nEnglish:"
         
         if context:
-            user_prompt += f"\n\nContext: {context}"
+            user_prompt = f"Context: {context}\n\n{user_prompt}"
         
         # Call GPT
         response = self.client.client.chat.completions.create(
@@ -53,6 +50,16 @@ class TranslationService:
             temperature=0.3,  # Lower temperature for more consistent translations
             max_tokens=150
         )
+        
+        # Track usage
+        if session_id and hasattr(response, 'usage'):
+            from backend.services.usage_tracker import get_usage_tracker
+            tracker = get_usage_tracker()
+            tracker.track_gpt(
+                session_id,
+                response.usage.prompt_tokens,
+                response.usage.completion_tokens
+            )
         
         translation = response.choices[0].message.content
         return translation.strip() if translation else ""
@@ -101,7 +108,7 @@ class TranslationService:
 _translation_service: Optional[TranslationService] = None
 
 
-def get_translation_service(model: str = "gpt-4o-mini") -> TranslationService:
+def get_translation_service(model: str = "gpt-3.5-turbo") -> TranslationService:
     """Get global translation service instance (singleton pattern)"""
     global _translation_service
     if _translation_service is None:

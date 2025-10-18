@@ -15,6 +15,7 @@ class PunjabiApp {
     init() {
         this.setupEventListeners();
         this.loadScenarios();
+        this.checkAccountBalance();
     }
     
     setupEventListeners() {
@@ -295,11 +296,22 @@ class PunjabiApp {
         conversationTurns.scrollTop = conversationTurns.scrollHeight;
     }
     
-    updateMetrics(metrics) {
+    async updateMetrics(metrics) {
         document.getElementById('turn-count').textContent = metrics.turn_count;
         document.getElementById('word-count').textContent = metrics.total_words;
         document.getElementById('avg-confidence').textContent = 
             metrics.average_confidence ? (metrics.average_confidence * 100).toFixed(0) + '%' : '--';
+        
+        // Update cost estimate
+        try {
+            const response = await fetch(`/api/usage/${this.currentSessionId}`);
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('api-cost').textContent = data.usage.total_cost;
+            }
+        } catch (error) {
+            console.error('Failed to update cost:', error);
+        }
     }
     
     openHelpPanel() {
@@ -380,7 +392,7 @@ class PunjabiApp {
         }
     }
     
-    showSummary(summary) {
+    async showSummary(summary) {
         document.getElementById('summary-wpm').textContent = 
             summary.metrics.words_per_minute ? summary.metrics.words_per_minute.toFixed(1) : '--';
         document.getElementById('summary-words').textContent = summary.metrics.total_words;
@@ -389,7 +401,46 @@ class PunjabiApp {
         document.getElementById('summary-confidence').textContent = 
             summary.metrics.average_confidence ? (summary.metrics.average_confidence * 100).toFixed(0) + '%' : '--';
         
+        // Fetch and display usage data
+        await this.loadUsageData();
+        
         this.showScreen('summary-screen');
+    }
+    
+    async loadUsageData() {
+        try {
+            const response = await fetch(`/api/usage/${this.currentSessionId}`);
+            if (!response.ok) throw new Error('Failed to fetch usage');
+            
+            const data = await response.json();
+            const usage = data.usage;
+            
+            // Update cost in summary
+            document.getElementById('summary-api-cost').textContent = usage.total_cost;
+            
+            // Show detailed breakdown
+            const breakdownHtml = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                    <div><strong>Whisper (ASR):</strong> ${usage.whisper.minutes.toFixed(2)} min</div>
+                    <div style="text-align: right;">${usage.whisper.cost}</div>
+                    
+                    <div><strong>GPT (${usage.gpt.model}):</strong> ${usage.gpt.total_tokens} tokens</div>
+                    <div style="text-align: right;">${usage.gpt.cost}</div>
+                    
+                    <div><strong>TTS (Speech):</strong> ${usage.tts.characters} chars</div>
+                    <div style="text-align: right;">${usage.tts.cost}</div>
+                    
+                    <div style="border-top: 1px solid #ccc; padding-top: 5px;"><strong>Total:</strong></div>
+                    <div style="border-top: 1px solid #ccc; padding-top: 5px; text-align: right;"><strong>${usage.total_cost}</strong></div>
+                </div>
+            `;
+            document.getElementById('usage-breakdown').innerHTML = breakdownHtml;
+            
+        } catch (error) {
+            console.error('Failed to load usage data:', error);
+            document.getElementById('summary-api-cost').textContent = 'N/A';
+            document.getElementById('usage-breakdown').innerHTML = '<p style="color: #999;">Usage data unavailable</p>';
+        }
     }
     
     selectConfidenceRating(rating) {
@@ -426,6 +477,66 @@ class PunjabiApp {
     
     showLoading(show) {
         document.getElementById('loading').classList.toggle('active', show);
+    }
+    
+    async checkAccountBalance() {
+        try {
+            const response = await fetch('/api/account/balance');
+            const data = await response.json();
+            
+            const balanceEl = document.getElementById('account-balance');
+            const noteEl = document.getElementById('balance-note');
+            
+            if (data.available && data.data) {
+                // If we can get balance info
+                const balance = data.data;
+                
+                // OpenAI API may return different formats, try to extract useful info
+                if (balance.hard_limit_usd) {
+                    balanceEl.textContent = `$${balance.hard_limit_usd.toFixed(2)} limit`;
+                    balanceEl.style.color = '#4CAF50';
+                    noteEl.textContent = 'Account active';
+                } else if (balance.credits) {
+                    balanceEl.textContent = `${balance.credits} credits`;
+                    balanceEl.style.color = '#4CAF50';
+                } else {
+                    balanceEl.textContent = 'Account Active';
+                    balanceEl.style.color = '#4CAF50';
+                    noteEl.textContent = 'Balance details unavailable';
+                }
+            } else {
+                // Balance check not available (most common case)
+                balanceEl.textContent = 'View on OpenAI';
+                balanceEl.style.color = '#666';
+                noteEl.innerHTML = '<a href="https://platform.openai.com/account/billing" target="_blank" style="color: #2196F3; text-decoration: none;">Check Balance →</a>';
+            }
+            
+            // Also fetch and display global usage
+            await this.displayGlobalUsage();
+            
+        } catch (error) {
+            console.error('Failed to check balance:', error);
+            document.getElementById('account-balance').textContent = 'View on OpenAI';
+            document.getElementById('balance-note').innerHTML = '<a href="https://platform.openai.com/account/billing" target="_blank" style="color: #2196F3; text-decoration: none;">Check Balance →</a>';
+        }
+    }
+    
+    async displayGlobalUsage() {
+        try {
+            const response = await fetch('/api/usage/global/summary');
+            if (response.ok) {
+                const data = await response.json();
+                const noteEl = document.getElementById('balance-note');
+                
+                // Add global spending info
+                const currentNote = noteEl.textContent;
+                if (currentNote && !currentNote.includes('Spent')) {
+                    noteEl.innerHTML = `Session spent: ${data.usage.total_cost}<br>${noteEl.innerHTML}`;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to get global usage:', error);
+        }
     }
 }
 

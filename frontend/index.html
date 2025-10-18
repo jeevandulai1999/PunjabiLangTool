@@ -72,6 +72,19 @@
                         <span class="metric-label">Confidence:</span>
                         <span id="avg-confidence">--</span>
                     </div>
+                    <div class="metric">
+                        <span class="metric-label">API Cost:</span>
+                        <span id="api-cost">$0.00</span>
+                    </div>
+                </div>
+                
+                <!-- Account Balance Display -->
+                <div class="account-balance" style="margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 5px; text-align: center;">
+                    <div style="font-size: 0.85em; color: #666;">OpenAI Account</div>
+                    <div id="account-balance" style="font-size: 1.1em; font-weight: bold; color: #2196F3;">
+                        Checking...
+                    </div>
+                    <div id="balance-note" style="font-size: 0.75em; color: #999; margin-top: 5px;"></div>
                 </div>
             </div>
 
@@ -131,6 +144,16 @@
                     <h3>Average Confidence</h3>
                     <p class="metric-value" id="summary-confidence">--</p>
                 </div>
+                
+                <div class="summary-metric">
+                    <h3>API Cost (Est.)</h3>
+                    <p class="metric-value" id="summary-api-cost">--</p>
+                </div>
+            </div>
+            
+            <div class="usage-details" id="usage-details" style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                <h3 style="margin-top: 0;">API Usage Details</h3>
+                <div id="usage-breakdown"></div>
             </div>
             
             <div class="confidence-rating">
