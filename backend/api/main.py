@@ -87,12 +87,6 @@ async def start_session(scenario_id: str = Form(...)):
         Session info with initial greeting
     """
     # Get scenario
-    if scenario_id == "custom":
-        raise HTTPException(
-            status_code=400,
-            detail="Use /api/scenarios/custom first to create custom scenario"
-        )
-    
     scenario = scenario_service.get_scenario(scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")

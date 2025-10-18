@@ -65,10 +65,11 @@ class ScenarioService:
         self.client = get_openai_client()
         self.model = model
         self.curated_scenarios = CURATED_SCENARIOS
+        self.custom_scenario = None  # Store the last custom scenario
     
     def get_scenario(self, scenario_id: str) -> Optional[Scenario]:
         """
-        Get a curated scenario by ID.
+        Get a curated or custom scenario by ID.
         
         Args:
             scenario_id: Scenario identifier
@@ -76,6 +77,11 @@ class ScenarioService:
         Returns:
             Scenario object or None if not found
         """
+        # Check if it's the custom scenario
+        if scenario_id == "custom" and self.custom_scenario:
+            return self.custom_scenario
+            
+        # Check curated scenarios
         return self.curated_scenarios.get(scenario_id)
     
     def list_scenarios(self) -> List[Scenario]:
@@ -151,6 +157,9 @@ The scenario should be realistic and appropriate for language learning."""
             goals=scenario_data.get("goals", ["Practice conversation"]),
             dialect=custom_scenario.dialect
         )
+        
+        # Store as the current custom scenario
+        self.custom_scenario = scenario
         
         return scenario
     
