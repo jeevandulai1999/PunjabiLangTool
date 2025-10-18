@@ -62,6 +62,11 @@ AI-powered conversational Punjabi practice tool using OpenAI's GPT, Whisper, and
 
 Use the automated installation scripts that create a `.venv` virtual environment and set everything up:
 
+```bash
+git clone https://github.com/jeevandulai1999/PunjabiLangTool
+cd PunjabiLangTool
+```
+
 #### Windows
 ```bash
 install.bat
@@ -88,7 +93,7 @@ If you prefer to install manually:
 #### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/jeevandulai1999/PunjabiLangTool
 cd PunjabiLangTool
 ```
 
