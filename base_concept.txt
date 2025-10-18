@@ -1,0 +1,49 @@
+We’re envisioning a Punjabi language learning app that uses conversational AI to help users practice real-world scenarios in Punjabi. The core stack involves:
+
+GPT for generating natural dialogue
+
+Whisper for speech-to-text transcription
+
+OpenAI’s text-to-speech for natural Punjabi audio responses
+
+Key Features (Proof of Concept)
+
+Scenario-based conversations:
+Users can choose from predefined real-world scenarios (e.g., at the market, school pickup, asking directions) or type in their own scenario prompt to generate a customized conversational partner.
+
+Live speech interaction:
+As users speak, their Punjabi is transcribed in three formats:
+
+Gurmukhi script (e.g., ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ?)
+
+Romanised Punjabi (e.g., tusi kiven ho?)
+
+English meaning (e.g., How are you?)
+
+Character-based responses:
+Each scenario presents a generated character (e.g., shopkeeper, teacher, stranger) who talks naturally in Punjabi and responds based on context. The AI character speaks back using OpenAI’s text-to-speech in natural-sounding Punjabi.
+
+Side panel “Help Mode”:
+At any point, the user can pause the scenario and ask a separate AI assistant for:
+
+Grammar explanations
+
+Vocabulary breakdowns
+
+Cultural/contextual clarification
+
+Example alternatives (e.g., more polite version, simpler phrasing)
+
+Future Roadmap
+
+After validating the concept with 1–2 scenarios, we can expand to:
+
+More scenario types and user personas
+
+Basic progress tracking (e.g., vocabulary mastered, time spent speaking)
+
+Achievement system to gamify consistency
+
+Option to save and review conversations
+
+Accent-aware feedback using Whisper's confidence metrics

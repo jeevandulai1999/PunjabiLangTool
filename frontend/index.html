@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punjabi Language Learning Tool</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>ਪੰਜਾਬੀ ਸਿੱਖੋ (Learn Punjabi)</h1>
+            <p class="subtitle">Practice Punjabi conversations with AI</p>
+        </header>
+
+        <!-- Scenario Selection Screen -->
+        <div id="scenario-selection" class="screen active">
+            <h2>Choose a Scenario</h2>
+            
+            <div id="scenario-list" class="scenario-list">
+                <!-- Scenarios will be loaded here -->
+            </div>
+            
+            <div class="custom-scenario">
+                <h3>Or create your own scenario</h3>
+                <textarea id="custom-prompt" placeholder="Describe your scenario... (e.g., 'Ordering food at a restaurant')"></textarea>
+                <button id="start-custom-btn" class="btn btn-secondary">Start Custom Scenario</button>
+            </div>
+        </div>
+
+        <!-- Conversation Screen -->
+        <div id="conversation-screen" class="screen">
+            <div class="conversation-container">
+                <!-- Scenario Info -->
+                <div id="scenario-info" class="scenario-info">
+                    <h3 id="scenario-title"></h3>
+                    <p id="scenario-description"></p>
+                    <p class="persona-info">
+                        Speaking with: <strong id="persona-name"></strong> (<span id="persona-role"></span>)
+                    </p>
+                </div>
+
+                <!-- Conversation Area -->
+                <div class="conversation-area">
+                    <div id="conversation-turns" class="conversation-turns">
+                        <!-- Conversation turns will appear here -->
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls">
+                    <button id="record-btn" class="btn btn-record" disabled>
+                        <span class="record-icon">🎤</span>
+                        <span class="record-text">Hold to Speak</span>
+                    </button>
+                    <button id="help-btn" class="btn btn-help">Help Mode</button>
+                    <button id="end-session-btn" class="btn btn-secondary">End Session</button>
+                </div>
+
+                <!-- Metrics Display -->
+                <div class="metrics-display">
+                    <div class="metric">
+                        <span class="metric-label">Turns:</span>
+                        <span id="turn-count">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Words:</span>
+                        <span id="word-count">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Confidence:</span>
+                        <span id="avg-confidence">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Mode Side Panel -->
+            <div id="help-panel" class="help-panel">
+                <div class="help-header">
+                    <h3>Help Mode</h3>
+                    <button id="close-help-btn" class="btn-close">✕</button>
+                </div>
+                
+                <div class="help-content">
+                    <p class="help-instruction">Ask for help with grammar, vocabulary, cultural context, or alternative phrasings.</p>
+                    
+                    <div class="help-topics">
+                        <button class="topic-btn" data-topic="grammar">Grammar</button>
+                        <button class="topic-btn" data-topic="vocabulary">Vocabulary</button>
+                        <button class="topic-btn" data-topic="culture">Culture</button>
+                        <button class="topic-btn" data-topic="alternatives">Alternatives</button>
+                    </div>
+                    
+                    <textarea id="help-query" placeholder="Type your question here..."></textarea>
+                    <button id="ask-help-btn" class="btn btn-primary">Ask</button>
+                    
+                    <div id="help-response" class="help-response">
+                        <!-- Help response will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session Summary Screen -->
+        <div id="summary-screen" class="screen">
+            <h2>Session Complete! 🎉</h2>
+            
+            <div class="summary-content">
+                <div class="summary-metric">
+                    <h3>Words Per Minute</h3>
+                    <p class="metric-value" id="summary-wpm">--</p>
+                </div>
+                
+                <div class="summary-metric">
+                    <h3>Total Words Spoken</h3>
+                    <p class="metric-value" id="summary-words">--</p>
+                </div>
+                
+                <div class="summary-metric">
+                    <h3>Unique Vocabulary</h3>
+                    <p class="metric-value" id="summary-vocab">--</p>
+                </div>
+                
+                <div class="summary-metric">
+                    <h3>Conversation Turns</h3>
+                    <p class="metric-value" id="summary-turns">--</p>
+                </div>
+                
+                <div class="summary-metric">
+                    <h3>Average Confidence</h3>
+                    <p class="metric-value" id="summary-confidence">--</p>
+                </div>
+            </div>
+            
+            <div class="confidence-rating">
+                <h3>How confident do you feel speaking Punjabi now?</h3>
+                <div class="rating-buttons">
+                    <button class="rating-btn" data-rating="1">1</button>
+                    <button class="rating-btn" data-rating="2">2</button>
+                    <button class="rating-btn" data-rating="3">3</button>
+                    <button class="rating-btn" data-rating="4">4</button>
+                    <button class="rating-btn" data-rating="5">5</button>
+                </div>
+                <p class="rating-labels">
+                    <span>Not confident</span>
+                    <span>Very confident</span>
+                </p>
+            </div>
+            
+            <button id="new-session-btn" class="btn btn-primary">Start New Session</button>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+
