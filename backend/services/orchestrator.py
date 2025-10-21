@@ -2,6 +2,8 @@
 from typing import BinaryIO, Optional, Dict
 from pathlib import Path
 import time
+import io
+from concurrent.futures import ThreadPoolExecutor
 
 from backend.models.transcript import TriScript, TranscriptWithConfidence
 from backend.models.scenario import Scenario, CustomScenario
@@ -14,6 +16,7 @@ from backend.services.help_service import get_help_service
 from backend.services.scenario_service import get_scenario_service
 from backend.services.session_manager import SessionManager
 from backend.services.usage_tracker import get_usage_tracker
+from backend.services.phoneme_service import get_phoneme_service
 
 
 class ConversationOrchestrator:
@@ -28,6 +31,7 @@ class ConversationOrchestrator:
         self.help_service = get_help_service()
         self.scenario_service = get_scenario_service()
         self.usage_tracker = get_usage_tracker()
+        self.phoneme_service = get_phoneme_service()
     
     def _get_romanisation_from_llm(self, gurmukhi_text: str, context: str = "", session_id: str = "") -> str:
         """
@@ -109,15 +113,39 @@ class ConversationOrchestrator:
         Returns:
             TranscriptWithConfidence with all three scripts
         """
+        audio_bytes = audio_file.read()
+        if hasattr(audio_file, "seek"):
+            audio_file.seek(0)
+
+        asr_buffer = io.BytesIO(audio_bytes)
+        phoneme_buffer = io.BytesIO(audio_bytes)
+
+        # Whisper expects a ``name`` attribute on file-like objects.
+        source_name = getattr(audio_file, "name", "user_audio.wav")
+        asr_buffer.name = source_name
+        phoneme_buffer.name = source_name
+
         try:
-            # Step 1: ASR - transcribe audio (Whisper auto-detects Punjabi)
-            print("DEBUG: Starting ASR transcription...")
-            transcription = self.asr_service.transcribe_audio(audio_file)
-            print(f"DEBUG: ASR completed, got: {transcription.get('text', '')[:50]}...")
-            print(f"DEBUG: Detected language: {transcription.get('language', 'unknown')}")
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                print("DEBUG: Starting ASR transcription and phoneme extraction in parallel...")
+                asr_future = executor.submit(self.asr_service.transcribe_audio, asr_buffer)
+                phoneme_future = executor.submit(self.phoneme_service.extract_phonemes, phoneme_buffer)
+
+                transcription = asr_future.result()
+                print(
+                    f"DEBUG: ASR completed, got: {transcription.get('text', '')[:50]}..."
+                )
+                print(f"DEBUG: Detected language: {transcription.get('language', 'unknown')}")
+
+                try:
+                    phoneme_timeline = phoneme_future.result()
+                except Exception as phoneme_error:
+                    print(f"WARNING: Phoneme extraction failed: {phoneme_error}")
+                    phoneme_timeline = []
         except Exception as e:
-            print(f"ERROR in ASR: {str(e)}")
+            print(f"ERROR in audio processing: {str(e)}")
             raise
+
         gurmukhi_text = transcription.get("text", "")
         
         # Step 2: Calculate confidence
@@ -147,7 +175,8 @@ class ConversationOrchestrator:
             romanised=romanised_text,
             english=english_text,
             confidence=confidence,
-            duration_seconds=duration
+            duration_seconds=duration,
+            phonemes=phoneme_timeline or None
         )
     
     def generate_ai_response(

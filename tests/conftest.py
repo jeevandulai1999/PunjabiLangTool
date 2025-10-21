@@ -1,7 +1,26 @@
 """Pytest configuration and fixtures"""
 import pytest
 import os
+import sys
+import types
 from pathlib import Path
+
+
+# Stub the allosaurus dependency so unit tests can run without the heavy model
+# present. Individual tests can monkeypatch ``read_recognizer`` with a concrete
+# implementation when needed.
+allosaurus_stub = types.ModuleType("allosaurus")
+allosaurus_app_stub = types.ModuleType("allosaurus.app")
+
+
+def _stub_read_recognizer(_model_name):  # pragma: no cover - defensive default
+    raise RuntimeError("allosaurus recognizer not available in test environment")
+
+
+allosaurus_app_stub.read_recognizer = _stub_read_recognizer
+allosaurus_stub.app = allosaurus_app_stub
+sys.modules.setdefault("allosaurus", allosaurus_stub)
+sys.modules.setdefault("allosaurus.app", allosaurus_app_stub)
 
 
 # Set test environment variables
