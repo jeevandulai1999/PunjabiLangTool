@@ -27,10 +27,10 @@ def test_extract_phonemes_returns_time_aligned_segments(monkeypatch):
     dummy_segment = SimpleNamespace(log_prob=-0.1, start=0.0, end=0.12, token="p")
 
     class DummyRecognizer:
-        def recognize(self, file_path, lang=None, timestamp=False):
+        def recognize(self, file_path, lang_id=None, timestamp=False):
             assert file_path.endswith(".wav")
             assert timestamp is True
-            assert lang == "eng"
+            assert lang_id == "ipa"
             return [dummy_segment]
 
     monkeypatch.setattr(phoneme_service, "read_recognizer", lambda model: DummyRecognizer())
