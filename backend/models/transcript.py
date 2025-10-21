@@ -1,5 +1,5 @@
 """Tri-script transcript data models"""
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
@@ -20,9 +20,31 @@ class TriScript(BaseModel):
         }
 
 
+class PhonemePrediction(BaseModel):
+    """Represents a single time-aligned phoneme prediction."""
+
+    phoneme: str = Field(description="Predicted phoneme label")
+    start: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        description="Start time in seconds"
+    )
+    end: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        description="End time in seconds"
+    )
+    confidence: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Probability/confidence score when provided by the recogniser"
+    )
+
+
 class TranscriptWithConfidence(TriScript):
     """Transcript with ASR confidence metrics"""
-    
+
     confidence: Optional[float] = Field(
         default=None,
         ge=0.0,
@@ -33,6 +55,10 @@ class TranscriptWithConfidence(TriScript):
         default=None,
         ge=0.0,
         description="Audio duration in seconds"
+    )
+    phonemes: Optional[List[PhonemePrediction]] = Field(
+        default=None,
+        description="Time-aligned phoneme predictions with confidence values"
     )
 
 

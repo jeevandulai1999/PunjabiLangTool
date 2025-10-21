@@ -1,7 +1,11 @@
 """Tests for scenario service"""
 import pytest
-from backend.services.scenario_service import get_scenario_service, CURATED_SCENARIOS
+
 from backend.models.scenario import CustomScenario
+from backend.services.scenario_service import (
+    CURATED_SCENARIOS,
+    get_scenario_service,
+)
 
 
 class TestScenarioService:
@@ -51,7 +55,7 @@ class TestScenarioService:
             assert scenario.dialect
     
     @pytest.mark.skipif(
-        not pytest.config.getoption("--run-api-tests", default=False),
+        "not config.getoption('--run-api-tests', default=False)",
         reason="Skipping API tests to limit costs"
     )
     def test_generate_custom_scenario(self):
