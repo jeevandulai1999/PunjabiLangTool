@@ -338,6 +338,9 @@ pytest -m "not api"
 
 - `POST /api/sessions/start` - Start new conversation session
 - `POST /api/sessions/{session_id}/turn` - Process conversation turn
+  - Returns the user transcript with optional pronunciation details:
+    - `phonemes`: time-aligned phoneme predictions when available
+    - `vowel_feedback`: structured scoring for each detected vowel (omitted when unavailable)
 - `POST /api/sessions/{session_id}/help` - Get help response
 - `POST /api/sessions/{session_id}/complete` - Complete session
 - `GET /api/sessions/{session_id}/metrics` - Get current metrics

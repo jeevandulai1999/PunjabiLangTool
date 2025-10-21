@@ -11,6 +11,8 @@ class UsageStats:
     gpt_input_tokens: int = 0
     gpt_output_tokens: int = 0
     tts_characters: int = 0
+    phoneme_analysis_seconds: float = 0.0
+    vowel_analysis_seconds: float = 0.0
     
     # Pricing (as of 2024)
     WHISPER_PRICE_PER_SECOND = 0.0001  # $0.006 per minute = $0.0001 per second
@@ -32,6 +34,14 @@ class UsageStats:
     def add_tts_usage(self, characters: int) -> None:
         """Add TTS API usage"""
         self.tts_characters += characters
+
+    def add_phoneme_analysis_usage(self, seconds: float) -> None:
+        """Add phoneme extraction runtime usage"""
+        self.phoneme_analysis_seconds += seconds
+
+    def add_vowel_analysis_usage(self, seconds: float) -> None:
+        """Add vowel analysis runtime usage"""
+        self.vowel_analysis_seconds += seconds
     
     def get_whisper_cost(self) -> float:
         """Calculate Whisper cost"""
@@ -74,6 +84,14 @@ class UsageStats:
                 "characters": self.tts_characters,
                 "cost": f"${self.get_tts_cost():.4f}"
             },
+            "phoneme_analysis": {
+                "seconds": round(self.phoneme_analysis_seconds, 3),
+                "minutes": round(self.phoneme_analysis_seconds / 60, 3),
+            },
+            "vowel_analysis": {
+                "seconds": round(self.vowel_analysis_seconds, 3),
+                "minutes": round(self.vowel_analysis_seconds / 60, 3),
+            },
             "total_cost": f"${self.get_total_cost(model):.4f}"
         }
 
@@ -109,6 +127,18 @@ class UsageTracker:
         stats = self.get_or_create_session_stats(session_id)
         stats.add_tts_usage(characters)
         self.global_stats.add_tts_usage(characters)
+
+    def track_phoneme_analysis(self, session_id: str, seconds: float) -> None:
+        """Track runtime spent on phoneme extraction"""
+        stats = self.get_or_create_session_stats(session_id)
+        stats.add_phoneme_analysis_usage(seconds)
+        self.global_stats.add_phoneme_analysis_usage(seconds)
+
+    def track_vowel_analysis(self, session_id: str, seconds: float) -> None:
+        """Track runtime spent on vowel analysis"""
+        stats = self.get_or_create_session_stats(session_id)
+        stats.add_vowel_analysis_usage(seconds)
+        self.global_stats.add_vowel_analysis_usage(seconds)
     
     def get_session_summary(self, session_id: str, model: str = "gpt-3.5-turbo") -> Dict[str, any]:
         """Get usage summary for a session"""
