@@ -20,12 +20,17 @@ AI-powered conversational Punjabi practice tool using OpenAI's GPT, Whisper, and
 - **Session Analytics**: Track words per minute, vocabulary breadth, confidence scores
 
 ### 🆕 New Features
-- **📊 Real-Time API Cost Tracking**: 
+- **📊 Real-Time API Cost Tracking**:
   - Live cost display during conversations
   - Per-session usage breakdown (Whisper, GPT, TTS)
   - OpenAI account balance checker
   - Typical session cost: **$0.01-0.02** 💰
-  
+
+- **🔤 Vowel Pronunciation Feedback**:
+  - Timeline and table view comparing expected vs. detected vowels with colour-coded confidence
+  - Playback buttons to rehear the precise vowel slice and practise corrections
+  - Confidence badges summarising per-vowel match quality
+
 - **🎤 Optimized TTS (Text-to-Speech)**:
   - **Nova voice** - Warm, natural pronunciation for Punjabi
   - Fast `tts-1` model (2-3x faster than HD)
@@ -317,6 +322,16 @@ pytest tests/test_transliteration.py
 ```bash
 pytest --cov=backend --cov-report=html
 ```
+
+### Frontend UI Tests (Jest)
+
+```bash
+cd frontend
+npm install
+npm test
+```
+
+These tests exercise the vowel pronunciation dashboard, ensuring the timeline, table rendering, and playback controls stay functional as the UI evolves.
 
 ### Skip API Tests (to avoid costs)
 
