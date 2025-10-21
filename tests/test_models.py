@@ -1,6 +1,7 @@
 """Tests for data models"""
 import pytest
 from backend.models.transcript import TriScript, TranscriptWithConfidence, ConversationTurn
+from backend.models.vowel_feedback import VowelFeedback, VowelAssessment, VowelScoreDetails
 from backend.models.scenario import Scenario
 from backend.models.session import SessionMetrics, SessionState
 
@@ -63,9 +64,38 @@ class TestTranscriptWithConfidence:
             romanised="test",
             english="test"
         )
-        
+
         assert transcript.confidence is None
         assert transcript.duration_seconds is None
+
+    def test_vowel_feedback_optional(self):
+        """Transcript should allow optional vowel feedback"""
+        transcript = TranscriptWithConfidence(
+            gurmukhi="ਟੈਸਟ",
+            romanised="test",
+            english="test",
+        )
+
+        assert transcript.vowel_feedback is None
+
+    def test_vowel_feedback_assignment(self):
+        """Transcript should accept vowel feedback payload"""
+        assessment = VowelAssessment(
+            expected_vowel="ਅ",
+            detected_cluster=None,
+            confidence=0.0,
+            match=False,
+            scores=VowelScoreDetails(overall_score=0.0)
+        )
+        feedback = VowelFeedback(assessments={"ਅ": assessment})
+        transcript = TranscriptWithConfidence(
+            gurmukhi="ਟੈਸਟ",
+            romanised="test",
+            english="test",
+            vowel_feedback=feedback,
+        )
+
+        assert transcript.vowel_feedback is feedback
 
 
 class TestScenario:

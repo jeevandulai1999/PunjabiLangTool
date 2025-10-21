@@ -1,5 +1,5 @@
 """Orchestrator service to coordinate all services for a complete conversation flow"""
-from typing import BinaryIO, Optional, Dict
+from typing import BinaryIO, Optional, Dict, List
 from pathlib import Path
 import time
 import io
@@ -17,6 +17,23 @@ from backend.services.scenario_service import get_scenario_service
 from backend.services.session_manager import SessionManager
 from backend.services.usage_tracker import get_usage_tracker
 from backend.services.phoneme_service import get_phoneme_service
+from backend.services.vowel_analyzer import VowelAnalyzer, DEFAULT_VOWEL_MAPPING
+
+
+_VOWEL_SIGN_TO_CANONICAL = {
+    "ਾ": "ਆ",
+    "ਿ": "ਇ",
+    "ੀ": "ਈ",
+    "ੁ": "ਉ",
+    "ੂ": "ਊ",
+    "ੇ": "ਏ",
+    "ੈ": "ਐ",
+    "ੋ": "ਓ",
+    "ੌ": "ਔ",
+}
+_GURMUKHI_HALANT = "\u0A4D"
+_GURMUKHI_NUKTA = "\u0A3C"
+_CANONICAL_VOWELS = set(DEFAULT_VOWEL_MAPPING.keys())
 
 
 class ConversationOrchestrator:
@@ -32,6 +49,47 @@ class ConversationOrchestrator:
         self.scenario_service = get_scenario_service()
         self.usage_tracker = get_usage_tracker()
         self.phoneme_service = get_phoneme_service()
+        self.vowel_analyzer = VowelAnalyzer()
+
+    @staticmethod
+    def _is_gurmukhi_consonant(char: str) -> bool:
+        if not char:
+            return False
+        code_point = ord(char)
+        return (0x0A15 <= code_point <= 0x0A39) or (0x0A59 <= code_point <= 0x0A5E)
+
+    @staticmethod
+    def _peek_following_char(text: str, index: int) -> Optional[str]:
+        i = index
+        while i < len(text):
+            char = text[i]
+            if char == _GURMUKHI_NUKTA:
+                i += 1
+                continue
+            return char
+        return None
+
+    def _extract_expected_vowels(self, gurmukhi_text: str) -> List[str]:
+        expected: List[str] = []
+        for idx, char in enumerate(gurmukhi_text):
+            if char in _CANONICAL_VOWELS:
+                expected.append(char)
+                continue
+
+            mapped = _VOWEL_SIGN_TO_CANONICAL.get(char)
+            if mapped:
+                expected.append(mapped)
+                continue
+
+            if self._is_gurmukhi_consonant(char):
+                next_char = self._peek_following_char(gurmukhi_text, idx + 1)
+                if next_char in _VOWEL_SIGN_TO_CANONICAL:
+                    continue
+                if next_char == _GURMUKHI_HALANT:
+                    continue
+                expected.append("ਅ")
+
+        return expected
     
     def _get_romanisation_from_llm(self, gurmukhi_text: str, context: str = "", session_id: str = "") -> str:
         """
@@ -125,10 +183,13 @@ class ConversationOrchestrator:
         asr_buffer.name = source_name
         phoneme_buffer.name = source_name
 
+        phoneme_timeline = []
+
         try:
             with ThreadPoolExecutor(max_workers=2) as executor:
                 print("DEBUG: Starting ASR transcription and phoneme extraction in parallel...")
                 asr_future = executor.submit(self.asr_service.transcribe_audio, asr_buffer)
+                phoneme_start = time.perf_counter()
                 phoneme_future = executor.submit(self.phoneme_service.extract_phonemes, phoneme_buffer)
 
                 transcription = asr_future.result()
@@ -142,6 +203,13 @@ class ConversationOrchestrator:
                 except Exception as phoneme_error:
                     print(f"WARNING: Phoneme extraction failed: {phoneme_error}")
                     phoneme_timeline = []
+                finally:
+                    if session:
+                        phoneme_duration = time.perf_counter() - phoneme_start
+                        self.usage_tracker.track_phoneme_analysis(
+                            session.session_id,
+                            phoneme_duration,
+                        )
         except Exception as e:
             print(f"ERROR in audio processing: {str(e)}")
             raise
@@ -170,13 +238,30 @@ class ConversationOrchestrator:
             session_id=session_id
         )
         
+        expected_vowels = self._extract_expected_vowels(gurmukhi_text)
+        vowel_feedback = None
+
+        if phoneme_timeline and expected_vowels:
+            vowel_timer = time.perf_counter()
+            try:
+                vowel_feedback = self.vowel_analyzer.analyze(expected_vowels, phoneme_timeline)
+            except Exception as vowel_error:
+                print(f"WARNING: Vowel analysis failed: {vowel_error}")
+            finally:
+                if session:
+                    self.usage_tracker.track_vowel_analysis(
+                        session.session_id,
+                        time.perf_counter() - vowel_timer,
+                    )
+
         return TranscriptWithConfidence(
             gurmukhi=gurmukhi_text,
             romanised=romanised_text,
             english=english_text,
             confidence=confidence,
             duration_seconds=duration,
-            phonemes=phoneme_timeline or None
+            phonemes=phoneme_timeline or None,
+            vowel_feedback=vowel_feedback,
         )
     
     def generate_ai_response(

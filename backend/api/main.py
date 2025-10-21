@@ -148,9 +148,13 @@ async def process_turn(
         # Clean up temp file
         os.unlink(temp_audio_path)
         
+        user_transcript = result["user_transcript"].model_dump()
+        if user_transcript.get("vowel_feedback") is None:
+            user_transcript.pop("vowel_feedback", None)
+
         return {
             "user": {
-                "transcript": result["user_transcript"].model_dump(),
+                "transcript": user_transcript,
             },
             "ai": {
                 "transcript": result["ai_transcript"].model_dump(),

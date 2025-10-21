@@ -2,6 +2,8 @@
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
+from backend.models.vowel_feedback import VowelFeedback
+
 
 class TriScript(BaseModel):
     """Represents text in three scripts: Gurmukhi, Romanised, and English"""
@@ -59,6 +61,10 @@ class TranscriptWithConfidence(TriScript):
     phonemes: Optional[List[PhonemePrediction]] = Field(
         default=None,
         description="Time-aligned phoneme predictions with confidence values"
+    )
+    vowel_feedback: Optional[VowelFeedback] = Field(
+        default=None,
+        description="Structured feedback on vowel pronunciation quality"
     )
 
 

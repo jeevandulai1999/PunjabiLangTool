@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from backend.services import orchestrator as orchestrator_module
 from backend.models.transcript import PhonemePrediction
+from backend.models.vowel_feedback import VowelFeedback
 
 
 class DummySession:
@@ -54,6 +55,12 @@ class DummyUsageTracker:
     def track_tts(self, *args, **kwargs):
         pass
 
+    def track_phoneme_analysis(self, session_id, seconds):
+        self.phoneme_called_with = (session_id, seconds)
+
+    def track_vowel_analysis(self, session_id, seconds):
+        self.vowel_called_with = (session_id, seconds)
+
 
 def test_process_user_audio_includes_phonemes(monkeypatch):
     monkeypatch.setattr(orchestrator_module, "get_asr_service", lambda: DummyASRService())
@@ -78,4 +85,7 @@ def test_process_user_audio_includes_phonemes(monkeypatch):
     assert result.phonemes is not None
     assert len(result.phonemes) == 1
     assert result.phonemes[0].phoneme == "s"
+    assert isinstance(result.vowel_feedback, VowelFeedback)
+    assert hasattr(tracker, "phoneme_called_with")
+    assert hasattr(tracker, "vowel_called_with")
 
